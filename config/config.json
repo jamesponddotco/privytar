@@ -1,0 +1,17 @@
+{
+  "service": {
+    "contact": "hello@privytar.com",
+    "privacyPolicy": "https://privytar.com/privacy",
+    "termsOfService": "https://privytar.com/terms"
+  },
+  "server": {
+    "tls": {
+      "certificate": "/home/james/.local/src/jamesponddotco/privytar/config/localhost.pem",
+      "key": "/home/james/.local/src/jamesponddotco/privytar/config/localhost-key.pem",
+      "version": "1.3"
+    },
+    "address": ":1997",
+    "pid": "/home/james/.local/src/jamesponddotco/privytar/config/privytar.pid"
+  }
+}
+
