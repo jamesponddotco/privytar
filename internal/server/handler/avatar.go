@@ -111,6 +111,7 @@ func (h *AvatarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("Content-Disposition", "inline, filename="+hash+".jpg")
 
 	if _, err := w.Write(image); err != nil {
 		h.logger.Error("failed to write response", zap.String("url", uri), zap.Error(err))
