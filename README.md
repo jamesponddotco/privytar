@@ -14,7 +14,7 @@ Inspired by projects like [Nitter](https://github.com/zedeus/nitter),
 [Invidious](https://github.com/iv-org/invidious), and
 [Scribe](https://sr.ht/~edwardloveall/Scribe/), **Privytar** is easy to
 use, deploy, and should be pretty reliable. Use the official instance
-_TBD_ or host the service yourself.
+[s.privytar.com](https://s.privytar.com) or host the service yourself.
 
 ## Usage
 
