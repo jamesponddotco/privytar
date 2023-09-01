@@ -2,10 +2,10 @@
 package perror
 
 import (
+	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
-
-	"go.uber.org/zap"
 )
 
 // ErrorResponse is the response returned by the API when an error occurs.
@@ -18,11 +18,16 @@ type ErrorResponse struct {
 }
 
 // JSON sends an ErrorResponse to the HTTP response writer as JSON.
-func JSON(w http.ResponseWriter, logger *zap.Logger, response ErrorResponse) {
+func JSON(ctx context.Context, w http.ResponseWriter, logger *slog.Logger, response ErrorResponse) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(int(response.Code))
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		logger.Error("failed to encode error response", zap.String("error", err.Error()))
+		logger.LogAttrs(
+			ctx,
+			slog.LevelError,
+			"failed to encode error response",
+			slog.String("error", err.Error()),
+		)
 	}
 }

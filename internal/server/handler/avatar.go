@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 
@@ -10,14 +11,13 @@ import (
 	"git.sr.ht/~jamesponddotco/privytar/internal/fetch"
 	"git.sr.ht/~jamesponddotco/privytar/internal/perror"
 	"git.sr.ht/~jamesponddotco/xstd-go/xhash/xfnv"
-	"go.uber.org/zap"
 )
 
 // AvatarHandler is the HTTP handler for the /avatar endpoint.
 type AvatarHandler struct {
 	fetchClient *fetch.Client
 	cache       *cache.Cache
-	logger      *zap.Logger
+	logger      *slog.Logger
 	homepage    string
 }
 
@@ -26,7 +26,7 @@ func NewAvatarHandler(
 	homepage string,
 	fetchClient *fetch.Client,
 	cacheInstance *cache.Cache,
-	logger *zap.Logger,
+	logger *slog.Logger,
 ) *AvatarHandler {
 	return &AvatarHandler{
 		fetchClient: fetchClient,
@@ -47,9 +47,14 @@ func (h *AvatarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(hash) != 32 || !IsHexadecimal(hash) {
-		h.logger.Error("Invalid hash format", zap.String("hash", hash))
+		h.logger.LogAttrs(
+			r.Context(),
+			slog.LevelError,
+			"invalid hash format",
+			slog.String("hash", hash),
+		)
 
-		perror.JSON(w, h.logger, perror.ErrorResponse{
+		perror.JSON(r.Context(), w, h.logger, perror.ErrorResponse{
 			Message: "Invalid hash format",
 			Code:    http.StatusBadRequest,
 		})
@@ -59,9 +64,15 @@ func (h *AvatarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	normalizedQuery, err := NormalizeQueryString(r.URL.RawQuery)
 	if err != nil {
-		h.logger.Error("Failed to normalize query string", zap.Error(err))
+		h.logger.LogAttrs(
+			r.Context(),
+			slog.LevelError,
+			"failed to normalize query string",
+			slog.String("query", r.URL.RawQuery),
+			slog.String("error", err.Error()),
+		)
 
-		perror.JSON(w, h.logger, perror.ErrorResponse{
+		perror.JSON(r.Context(), w, h.logger, perror.ErrorResponse{
 			Message: "Failed to normalize query string",
 			Code:    http.StatusInternalServerError,
 		})
@@ -75,9 +86,15 @@ func (h *AvatarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	image, err := h.cache.Get(cacheKey)
 	if err != nil {
 		if !errors.Is(err, cache.ErrKeyNotFound) && !errors.Is(err, cache.ErrKeyExpired) {
-			h.logger.Error("failed to get image from cache", zap.String("cacheKey", cacheKey), zap.Error(err))
+			h.logger.LogAttrs(
+				r.Context(),
+				slog.LevelError,
+				"failed to get image from cache",
+				slog.String("cacheKey", cacheKey),
+				slog.String("error", err.Error()),
+			)
 
-			perror.JSON(w, h.logger, perror.ErrorResponse{
+			perror.JSON(r.Context(), w, h.logger, perror.ErrorResponse{
 				Message: "Failed to get image from cache",
 				Code:    http.StatusInternalServerError,
 			})
@@ -88,9 +105,15 @@ func (h *AvatarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// Image not found in cache. Fetch from Gravatar.com.
 		image, err = h.fetchClient.Remote(r.Context(), uri)
 		if err != nil {
-			h.logger.Error("failed to fetch image from Gravatar", zap.String("url", uri), zap.Error(err))
+			h.logger.LogAttrs(
+				r.Context(),
+				slog.LevelError,
+				"failed to fetch image from Gravatar",
+				slog.String("url", uri),
+				slog.String("error", err.Error()),
+			)
 
-			perror.JSON(w, h.logger, perror.ErrorResponse{
+			perror.JSON(r.Context(), w, h.logger, perror.ErrorResponse{
 				Message: "Failed to fetch Gravatar image",
 				Code:    http.StatusBadGateway,
 			})
@@ -99,9 +122,15 @@ func (h *AvatarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := h.cache.Set(cacheKey, image); err != nil {
-			h.logger.Error("failed to save image to cache", zap.String("cacheKey", cacheKey), zap.Error(err))
+			h.logger.LogAttrs(
+				r.Context(),
+				slog.LevelError,
+				"failed to save image to cache",
+				slog.String("cacheKey", cacheKey),
+				slog.String("error", err.Error()),
+			)
 
-			perror.JSON(w, h.logger, perror.ErrorResponse{
+			perror.JSON(r.Context(), w, h.logger, perror.ErrorResponse{
 				Message: "Failed to save image to cache",
 				Code:    http.StatusInternalServerError,
 			})
@@ -115,7 +144,13 @@ func (h *AvatarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Link", "<"+uri+">; rel=\"canonical\"")
 
 	if _, err := w.Write(image); err != nil {
-		h.logger.Error("failed to write response", zap.String("url", uri), zap.Error(err))
+		h.logger.LogAttrs(
+			r.Context(),
+			slog.LevelError,
+			"failed to write response",
+			slog.String("url", uri),
+			slog.String("error", err.Error()),
+		)
 	}
 }
 

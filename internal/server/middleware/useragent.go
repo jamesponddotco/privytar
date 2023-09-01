@@ -1,17 +1,17 @@
 package middleware
 
 import (
+	"log/slog"
 	"net/http"
 
 	"git.sr.ht/~jamesponddotco/privytar/internal/perror"
-	"go.uber.org/zap"
 )
 
 // UserAgent ensures that the request has a valid user agent.
-func UserAgent(logger *zap.Logger, next http.Handler) http.Handler {
+func UserAgent(logger *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.UserAgent() == "" {
-			perror.JSON(w, logger, perror.ErrorResponse{
+			perror.JSON(r.Context(), w, logger, perror.ErrorResponse{
 				Code:    http.StatusBadRequest,
 				Message: "User agent is missing. Please provide a valid user agent.",
 			})

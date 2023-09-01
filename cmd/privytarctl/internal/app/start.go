@@ -1,15 +1,13 @@
 package app
 
 import (
-	"errors"
 	"fmt"
+	"log/slog"
 	"os"
-	"syscall"
 
 	"git.sr.ht/~jamesponddotco/privytar/internal/config"
 	"git.sr.ht/~jamesponddotco/privytar/internal/server"
 	"git.sr.ht/~jamesponddotco/xstd-go/xerrors"
-	"go.uber.org/zap"
 )
 
 // ErrServerRunning is returned when the server is already running.
@@ -26,10 +24,7 @@ func StartAction(configPath string) error {
 		return fmt.Errorf("%w", err)
 	}
 
-	logger, err := zap.NewProduction()
-	if err != nil && !errors.Is(err, syscall.ENOTTY) {
-		return fmt.Errorf("%w", err)
-	}
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	srv, err := server.New(cfg, logger)
 	if err != nil {

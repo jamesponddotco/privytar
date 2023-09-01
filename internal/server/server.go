@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -20,17 +21,16 @@ import (
 	"git.sr.ht/~jamesponddotco/privytar/internal/server/handler"
 	"git.sr.ht/~jamesponddotco/privytar/internal/server/middleware"
 	"git.sr.ht/~jamesponddotco/xstd-go/xcrypto/xtls"
-	"go.uber.org/zap"
 )
 
 // Server represents a Privytar server.
 type Server struct {
 	httpServer *http.Server
-	logger     *zap.Logger
+	logger     *slog.Logger
 }
 
 // New creates a new Privytar server.
-func New(cfg *config.Config, logger *zap.Logger) (*Server, error) {
+func New(cfg *config.Config, logger *slog.Logger) (*Server, error) {
 	cert, err := tls.LoadX509KeyPair(cfg.Server.TLS.Certificate, cfg.Server.TLS.Key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load TLS certificate: %w", err)
@@ -69,7 +69,7 @@ func New(cfg *config.Config, logger *zap.Logger) (*Server, error) {
 		case endpoint.Root:
 			http.Redirect(w, r, cfg.Service.Homepage, http.StatusMovedPermanently)
 		default:
-			perror.JSON(w, logger, perror.ErrorResponse{
+			perror.JSON(r.Context(), w, logger, perror.ErrorResponse{
 				Code:    http.StatusNotFound,
 				Message: "Page not found. Check the URL and try again.",
 			})
@@ -109,7 +109,12 @@ func (s *Server) Start() error {
 		defer cancel()
 
 		if err := s.httpServer.Shutdown(ctx); err != nil {
-			s.logger.Error("HTTP server Shutdown:", zap.Error(err))
+			s.logger.LogAttrs(
+				ctx,
+				slog.LevelError,
+				"failed to shutdown server",
+				slog.String("error", err.Error()),
+			)
 		}
 
 		close(shutdownCompleted)
