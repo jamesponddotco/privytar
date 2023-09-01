@@ -7,12 +7,15 @@ import (
 	"strings"
 
 	"git.sr.ht/~jamesponddotco/privytar/internal/config"
-	"github.com/urfave/cli/v2"
 )
 
 // StopAction is the action for the stop command.
-func StopAction(ctx *cli.Context) error {
-	cfg, err := config.LoadConfig(ctx.String("config"))
+func StopAction(configPath string) error {
+	if configPath == "" {
+		return fmt.Errorf("%w", ErrConfigPathRequired)
+	}
+
+	cfg, err := config.LoadConfig(configPath)
 	if err != nil {
 		return fmt.Errorf("%w", err)
 	}
