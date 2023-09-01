@@ -32,7 +32,7 @@ Using **Privytar** is even easier:
 
 First install the dependencies:
 
-- Go 1.20 or above.
+- Go 1.21 or above.
 - make.
 - [scdoc](https://git.sr.ht/~sircmpwn/scdoc).
 
