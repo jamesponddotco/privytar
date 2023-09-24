@@ -85,6 +85,7 @@ func New(cfg *config.Config, logger *slog.Logger) (*Server, error) {
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  60 * time.Second,
+		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
 	return &Server{
