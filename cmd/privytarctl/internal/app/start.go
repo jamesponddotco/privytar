@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 
+	"git.sr.ht/~jamesponddotco/imgdiet-go"
 	"git.sr.ht/~jamesponddotco/privytar/internal/config"
 	"git.sr.ht/~jamesponddotco/privytar/internal/server"
 	"git.sr.ht/~jamesponddotco/xstd-go/xerrors"
@@ -25,6 +26,9 @@ func StartAction(configPath string) error {
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	imgdiet.Start(nil)
+	defer imgdiet.Stop()
 
 	srv, err := server.New(cfg, logger)
 	if err != nil {

@@ -52,9 +52,6 @@ func (c *Client) Remote(ctx context.Context, uri string) ([]byte, error) {
 		return nil, fmt.Errorf("%w: %s", ErrFetchData, resp.Status)
 	}
 
-	imgdiet.Start(nil)
-	defer imgdiet.Stop()
-
 	data, err := imgdiet.Open(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrFetchData, err)
