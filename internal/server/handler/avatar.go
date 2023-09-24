@@ -13,6 +13,14 @@ import (
 	"git.sr.ht/~jamesponddotco/xstd-go/xhash/xfnv"
 )
 
+const (
+	// HashSizeMD5 is the size of the MD5 hash.
+	HashSizeMD5 int = 32
+
+	// HashSizeSHA256 is the size of the SHA256 hash.
+	HashSizeSHA256 int = 64
+)
+
 // AvatarHandler is the HTTP handler for the /avatar endpoint.
 type AvatarHandler struct {
 	fetchClient *fetch.Client
@@ -46,7 +54,7 @@ func (h *AvatarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(hash) != 32 || !IsHexadecimal(hash) {
+	if (len(hash) != HashSizeMD5 && len(hash) != HashSizeSHA256) || !IsHexadecimal(hash) {
 		h.logger.LogAttrs(
 			r.Context(),
 			slog.LevelError,
