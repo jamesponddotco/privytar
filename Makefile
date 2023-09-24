@@ -12,7 +12,7 @@ RM = rm
 INSTALL = install
 SCDOC = scdoc
 
-GOBUILD_OPTS=-trimpath
+GOBUILD_OPTS=-trimpath -buildmode=pie -ldflags '-linkmode=external -s -w' -mod 'readonly' -modcacherw
 
 all: build doc
 
