@@ -4,7 +4,6 @@ package cache
 
 import (
 	"container/list"
-	"fmt"
 	"sync"
 	"time"
 
@@ -50,7 +49,7 @@ type Cache struct {
 	expiration timeutil.CacheDuration
 
 	// mu is a read-write mutex to ensure thread safety.
-	mu sync.RWMutex
+	mu sync.Mutex
 }
 
 // New creates a new cache with the given capacity and expiration time.
@@ -65,33 +64,33 @@ func New(capacity uint, expiration timeutil.CacheDuration) *Cache {
 
 // Get retrieves the value for the given key from the cache.
 func (c *Cache) Get(key string) ([]byte, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	if element, ok := c.entries[key]; ok {
-		item, ok := element.Value.(*Entry)
-		if !ok {
-			return nil, fmt.Errorf("%w: GET %s", ErrTypeAssertion, key)
-		}
-
-		if time.Now().After(item.timestamp.Add(c.expiration.Duration)) {
-			c.mu.RUnlock()
-
-			if err := c.Delete(key); err != nil {
-				return nil, err
-			}
-
-			c.mu.RLock()
-
-			return nil, fmt.Errorf("%w: GET %s", ErrKeyExpired, key)
-		}
-
-		c.list.MoveToFront(element)
-
-		return item.value, nil
+	element, ok := c.entries[key]
+	if !ok {
+		return nil, ErrKeyNotFound
 	}
 
-	return nil, fmt.Errorf("%w: GET %s", ErrKeyNotFound, key)
+	item, ok := element.Value.(*Entry)
+	if !ok {
+		return nil, ErrTypeAssertion
+	}
+
+	now := time.Now()
+	if now.After(item.timestamp.Add(c.expiration.Duration)) {
+		delete(c.entries, key)
+
+		c.list.Remove(element)
+
+		return nil, ErrKeyExpired
+	}
+
+	item.timestamp = now
+
+	c.list.MoveToFront(element)
+
+	return item.value, nil
 }
 
 // Set sets the value for the given key in the cache.
@@ -99,35 +98,40 @@ func (c *Cache) Set(key string, value []byte) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if element, ok := c.entries[key]; ok {
-		c.list.MoveToFront(element)
+	now := time.Now()
 
+	// If the key already exists, update the value and timestamp.
+	if element, ok := c.entries[key]; ok {
 		item, ok := element.Value.(*Entry)
 		if !ok {
-			return fmt.Errorf("%w: SET %s", ErrTypeAssertion, key)
+			return ErrTypeAssertion
 		}
 
 		item.value = value
-		item.timestamp = time.Now()
+		item.timestamp = now
+
+		c.list.MoveToFront(element)
 
 		return nil
 	}
 
-	if c.list.Len() == int(c.capacity) {
+	// Evict items if necessary.
+	if c.list.Len() >= int(c.capacity) {
 		element := c.list.Back()
-
-		c.list.Remove(element)
 
 		item, ok := element.Value.(*Entry)
 		if !ok {
-			return fmt.Errorf("%w: SET %s", ErrTypeAssertion, key)
+			return ErrTypeAssertion
 		}
 
 		delete(c.entries, item.key)
+
+		c.list.Remove(element)
 	}
 
+	// Add the new entry.
 	item := &Entry{
-		timestamp: time.Now(),
+		timestamp: now,
 		key:       key,
 		value:     value,
 	}
@@ -144,16 +148,19 @@ func (c *Cache) Delete(key string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if element, ok := c.entries[key]; ok {
-		item, ok := element.Value.(*Entry)
-		if !ok {
-			return fmt.Errorf("%w: DELETE %s", ErrTypeAssertion, key)
-		}
-
-		c.list.Remove(element)
-
-		delete(c.entries, item.key)
+	element, ok := c.entries[key]
+	if !ok {
+		return ErrKeyNotFound
 	}
+
+	item, ok := element.Value.(*Entry)
+	if !ok {
+		return ErrTypeAssertion
+	}
+
+	delete(c.entries, item.key)
+
+	c.list.Remove(element)
 
 	return nil
 }

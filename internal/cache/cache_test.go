@@ -90,44 +90,46 @@ func TestCache_Set(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name       string
-		capacity   uint
-		expiration timeutil.CacheDuration
-		entries    map[string][]byte
-		key        string
-		value      []byte
-		wantErr    bool
-		expectLRU  string
+		name          string
+		capacity      uint
+		expiration    timeutil.CacheDuration
+		initialKeys   map[string][]byte
+		setKey        string
+		setValue      []byte
+		expectErr     bool
+		expectedValue []byte
+		evictedKey    string
 	}{
 		{
-			name:       "New entry",
-			capacity:   5,
-			expiration: timeutil.CacheDuration{Duration: 5 * time.Minute},
-			entries:    map[string][]byte{},
-			key:        "test",
-			value:      []byte("value"),
-			wantErr:    false,
-			expectLRU:  "",
+			name:          "Add new entry",
+			capacity:      5,
+			expiration:    timeutil.CacheDuration{Duration: 5 * time.Minute},
+			initialKeys:   map[string][]byte{},
+			setKey:        "key",
+			setValue:      []byte("value"),
+			expectedValue: []byte("value"),
 		},
 		{
-			name:       "Overwrite existing entry",
-			capacity:   5,
-			expiration: timeutil.CacheDuration{Duration: 5 * time.Minute},
-			entries:    map[string][]byte{"test": []byte("old")},
-			key:        "test",
-			value:      []byte("value"),
-			wantErr:    false,
-			expectLRU:  "",
+			name:          "Overwrite existing entry",
+			capacity:      5,
+			expiration:    timeutil.CacheDuration{Duration: 5 * time.Minute},
+			initialKeys:   map[string][]byte{"key": []byte("oldValue")},
+			setKey:        "key",
+			setValue:      []byte("newValue"),
+			expectedValue: []byte("newValue"),
 		},
 		{
 			name:       "Cache overcapacity",
 			capacity:   2,
 			expiration: timeutil.CacheDuration{Duration: 5 * time.Minute},
-			entries:    map[string][]byte{"key1": []byte("val1"), "key2": []byte("val2")},
-			key:        "test",
-			value:      []byte("value"),
-			wantErr:    false,
-			expectLRU:  "key1",
+			initialKeys: map[string][]byte{
+				"key1": []byte("val1"),
+				"key2": []byte("val2"),
+			},
+			setKey:        "key3",
+			setValue:      []byte("val3"),
+			expectedValue: []byte("val3"), // Expected value for key3 after Set.
+			evictedKey:    "key1",
 		},
 	}
 
@@ -139,25 +141,32 @@ func TestCache_Set(t *testing.T) {
 
 			c := cache.New(tt.capacity, tt.expiration)
 
-			for k, v := range tt.entries {
-				c.Set(k, v)
+			// Preload initial keys.
+			for key, value := range tt.initialKeys {
+				if err := c.Set(key, value); err != nil {
+					t.Fatalf("Setup error: %v", err)
+				}
 			}
 
-			if err := c.Set(tt.key, tt.value); (err != nil) != tt.wantErr {
-				t.Errorf("Cache.Set() error = %v, wantErr %v", err, tt.wantErr)
+			// Call Set method.
+			if err := c.Set(tt.setKey, tt.setValue); (err != nil) != tt.expectErr {
+				t.Errorf("Cache.Set() error = %v, expectErr %v", err, tt.expectErr)
 			}
 
-			// Verify by Get.
-			got, _ := c.Get(tt.key)
-			if !bytes.Equal(got, tt.value) {
-				t.Errorf("Cache.Set() = %v, want %v", got, tt.value)
+			// Verify set value.
+			value, err := c.Get(tt.setKey)
+			if err != nil {
+				t.Errorf("Failed to retrieve set key: %v", err)
+			}
+			if !bytes.Equal(value, tt.expectedValue) {
+				t.Errorf("Cache.Get() = %v, expected %v", value, tt.expectedValue)
 			}
 
-			// Check LRU eviction.
-			if tt.expectLRU != "" {
-				_, err := c.Get(tt.expectLRU)
-				if !errors.Is(err, cache.ErrKeyNotFound) {
-					t.Errorf("Expected key %s to be evicted", tt.expectLRU)
+			// Check if any key was evicted.
+			if tt.evictedKey != "" {
+				_, err := c.Get(tt.evictedKey)
+				if err == nil || !errors.Is(err, cache.ErrKeyNotFound) {
+					t.Errorf("Expected key %s to be evicted", tt.evictedKey)
 				}
 			}
 		})
@@ -171,43 +180,26 @@ func TestCache_Delete(t *testing.T) {
 		name           string
 		capacity       uint
 		expiration     timeutil.CacheDuration
-		setup          func(*cache.Cache)
+		preloadKeys    map[string][]byte
 		keyToDelete    string
 		expectedError  error
-		verifyPostCond func(*testing.T, *cache.Cache)
+		expectKeyAfter bool
 	}{
 		{
-			name:       "Delete existing key",
-			capacity:   2,
-			expiration: timeutil.CacheDuration{Duration: 1 * time.Hour},
-			setup: func(c *cache.Cache) {
-				if err := c.Set("foo", []byte("bar")); err != nil {
-					t.Fatalf("Setup error: %v", err)
-				}
-			},
-			keyToDelete: "foo",
-			verifyPostCond: func(t *testing.T, c *cache.Cache) {
-				t.Helper()
-
-				_, err := c.Get("foo")
-				if !errors.Is(err, cache.ErrKeyNotFound) {
-					t.Errorf("Expected error: %v, got: %v", cache.ErrKeyNotFound, err)
-				}
-			},
-		},
-		{
-			name:        "Delete non-existing key",
+			name:        "Delete existing key",
 			capacity:    2,
 			expiration:  timeutil.CacheDuration{Duration: 1 * time.Hour},
+			preloadKeys: map[string][]byte{"foo": []byte("bar")},
 			keyToDelete: "foo",
-			verifyPostCond: func(t *testing.T, c *cache.Cache) {
-				t.Helper()
-
-				_, err := c.Get("foo")
-				if !errors.Is(err, cache.ErrKeyNotFound) {
-					t.Errorf("Expected error: %v, got: %v", cache.ErrKeyNotFound, err)
-				}
-			},
+		},
+		{
+			name:           "Delete non-existing key",
+			capacity:       2,
+			expiration:     timeutil.CacheDuration{Duration: 1 * time.Hour},
+			preloadKeys:    map[string][]byte{},
+			keyToDelete:    "foo",
+			expectedError:  cache.ErrKeyNotFound,
+			expectKeyAfter: false,
 		},
 	}
 
@@ -218,12 +210,13 @@ func TestCache_Delete(t *testing.T) {
 			t.Parallel()
 
 			c := cache.New(tt.capacity, tt.expiration)
-			if tt.setup != nil {
-				tt.setup(c)
+			for k, v := range tt.preloadKeys {
+				if err := c.Set(k, v); err != nil {
+					t.Fatalf("Setup error: %v", err)
+				}
 			}
 
 			err := c.Delete(tt.keyToDelete)
-
 			if tt.expectedError != nil {
 				if err == nil || !errors.Is(err, tt.expectedError) {
 					t.Errorf("Expected error: %v, got: %v", tt.expectedError, err)
@@ -232,8 +225,11 @@ func TestCache_Delete(t *testing.T) {
 				t.Errorf("Unexpected error: %v", err)
 			}
 
-			if tt.verifyPostCond != nil {
-				tt.verifyPostCond(t, c)
+			_, err = c.Get(tt.keyToDelete)
+			if tt.expectKeyAfter && errors.Is(err, cache.ErrKeyNotFound) {
+				t.Errorf("Expected key %s to be present", tt.keyToDelete)
+			} else if !tt.expectKeyAfter && !errors.Is(err, cache.ErrKeyNotFound) {
+				t.Errorf("Expected key %s to be absent", tt.keyToDelete)
 			}
 		})
 	}
