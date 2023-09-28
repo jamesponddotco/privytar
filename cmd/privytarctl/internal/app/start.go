@@ -25,7 +25,7 @@ func StartAction(configPath string) error {
 		return fmt.Errorf("%w", err)
 	}
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
 
 	imgdiet.Start(nil)
 	defer imgdiet.Stop()
