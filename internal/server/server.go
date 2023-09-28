@@ -57,6 +57,14 @@ func New(cfg *config.Config, logger *slog.Logger) (*Server, error) {
 		middleware.CORS,
 	}
 
+	if cfg.Server.LogRequests {
+		accessLogger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+		middlewares = append(middlewares, func(h http.Handler) http.Handler {
+			return middleware.AccessLog(accessLogger, h)
+		})
+	}
+
 	var (
 		cacheInstance = cache.New(cfg.Server.CacheCapacity, cfg.Server.CacheTTL)
 		fetchInstance = fetch.New(cfg.Service.Name, cfg.Service.Contact)

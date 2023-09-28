@@ -94,6 +94,9 @@ type Server struct {
 
 	// CacheTTL is the TTL of the cache.
 	CacheTTL timeutil.CacheDuration `json:"cacheTTL"`
+
+	// LogRequests defines whether the application should log requests.
+	LogRequests bool `json:"logRequests"`
 }
 
 // Service represents the service configuration.
