@@ -8,6 +8,8 @@ git.sr.ht/~jamesponddotco/recache-go v1.0.1 h1:O9S7SdGyMh4mD+Vom0WOkY45EhJJHDRBl
 git.sr.ht/~jamesponddotco/recache-go v1.0.1/go.mod h1:oF6LkAuwZYQqHe8+G/4hP9ZSNyDjAk6J8qhuy44wXw0=
 git.sr.ht/~jamesponddotco/xstd-go v0.3.0 h1:LFEbIqwzxeR9RQ/xP2Bbr62qrOQvIEUtmMyzFCWk+rE=
 git.sr.ht/~jamesponddotco/xstd-go v0.3.0/go.mod h1:L0SjmhDqcj/gR7oeNof+ed6l9VPk6oHPeNQSoaFBRFk=
+git.sr.ht/~jamesponddotco/xstd-go v0.4.0 h1:JCdpNE+Tcn/9d24hLXILfol1F69Wv/QYel5oGE+dzWc=
+git.sr.ht/~jamesponddotco/xstd-go v0.4.0/go.mod h1:L0SjmhDqcj/gR7oeNof+ed6l9VPk6oHPeNQSoaFBRFk=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

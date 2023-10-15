@@ -5,7 +5,7 @@ go 1.21
 require (
 	git.sr.ht/~jamesponddotco/httpx-go v0.0.0-20230516151239-08a439b40481
 	git.sr.ht/~jamesponddotco/imgdiet-go v0.1.2
-	git.sr.ht/~jamesponddotco/xstd-go v0.3.0
+	git.sr.ht/~jamesponddotco/xstd-go v0.4.0
 	golang.org/x/time v0.3.0
 )
 
