@@ -21,6 +21,7 @@ import (
 	"git.sr.ht/~jamesponddotco/privytar/internal/server/handler"
 	"git.sr.ht/~jamesponddotco/privytar/internal/server/middleware"
 	"git.sr.ht/~jamesponddotco/xstd-go/xcrypto/xtls"
+	"git.sr.ht/~jamesponddotco/xstd-go/xnet/xhttp/xmiddleware"
 )
 
 // Server represents a Privytar server.
@@ -49,11 +50,11 @@ func New(cfg *config.Config, logger *slog.Logger) (*Server, error) {
 	tlsConfig.Certificates = []tls.Certificate{cert}
 
 	middlewares := []func(http.Handler) http.Handler{
-		func(h http.Handler) http.Handler { return middleware.PanicRecovery(logger, h) },
-		func(h http.Handler) http.Handler { return middleware.UserAgent(logger, h) },
+		func(h http.Handler) http.Handler { return xmiddleware.PanicRecovery(logger, h) },
+		func(h http.Handler) http.Handler { return xmiddleware.UserAgent(logger, h) },
 		func(h http.Handler) http.Handler { return middleware.AcceptRequests(logger, h) },
-		func(h http.Handler) http.Handler { return middleware.PrivacyPolicy(cfg.Service.PrivacyPolicy, h) },
-		func(h http.Handler) http.Handler { return middleware.TermsOfService(cfg.Service.TermsOfService, h) },
+		func(h http.Handler) http.Handler { return xmiddleware.PrivacyPolicy(cfg.Service.PrivacyPolicy, h) },
+		func(h http.Handler) http.Handler { return xmiddleware.TermsOfService(cfg.Service.TermsOfService, h) },
 		middleware.CORS,
 	}
 
@@ -61,7 +62,7 @@ func New(cfg *config.Config, logger *slog.Logger) (*Server, error) {
 		accessLogger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 		middlewares = append(middlewares, func(h http.Handler) http.Handler {
-			return middleware.AccessLog(accessLogger, h)
+			return xmiddleware.AccessLog(accessLogger, h)
 		})
 	}
 
