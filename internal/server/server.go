@@ -19,7 +19,6 @@ import (
 	"git.sr.ht/~jamesponddotco/privytar/internal/fetch"
 	"git.sr.ht/~jamesponddotco/privytar/internal/perror"
 	"git.sr.ht/~jamesponddotco/privytar/internal/server/handler"
-	"git.sr.ht/~jamesponddotco/privytar/internal/server/middleware"
 	"git.sr.ht/~jamesponddotco/xstd-go/xcrypto/xtls"
 	"git.sr.ht/~jamesponddotco/xstd-go/xnet/xhttp/xmiddleware"
 )
@@ -52,10 +51,20 @@ func New(cfg *config.Config, logger *slog.Logger) (*Server, error) {
 	middlewares := []func(http.Handler) http.Handler{
 		func(h http.Handler) http.Handler { return xmiddleware.PanicRecovery(logger, h) },
 		func(h http.Handler) http.Handler { return xmiddleware.UserAgent(logger, h) },
-		func(h http.Handler) http.Handler { return middleware.AcceptRequests(logger, h) },
+		func(h http.Handler) http.Handler {
+			return xmiddleware.AcceptRequests(
+				[]string{
+					http.MethodGet,
+					http.MethodHead,
+					http.MethodOptions,
+				},
+				logger,
+				h,
+			)
+		},
 		func(h http.Handler) http.Handler { return xmiddleware.PrivacyPolicy(cfg.Service.PrivacyPolicy, h) },
 		func(h http.Handler) http.Handler { return xmiddleware.TermsOfService(cfg.Service.TermsOfService, h) },
-		middleware.CORS,
+		func(h http.Handler) http.Handler { return xmiddleware.CORS(nil, logger, h) },
 	}
 
 	if cfg.Server.LogRequests {
@@ -85,7 +94,7 @@ func New(cfg *config.Config, logger *slog.Logger) (*Server, error) {
 		}
 	})
 
-	mux.Handle(endpoint.Avatar, middleware.Chain(avatarHandler, middlewares...))
+	mux.Handle(endpoint.Avatar, xmiddleware.Chain(avatarHandler, middlewares...))
 
 	httpServer := &http.Server{
 		Addr:         cfg.Server.Address,
