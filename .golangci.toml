@@ -48,10 +48,12 @@ enable = [
   "nolintlint",
   "nosprintfhostport",
   "paralleltest",
+  "perfsprint",
   "prealloc",
   "predeclared",
   "reassign",
   "revive",
+  "sloglint",
   "staticcheck",
   "stylecheck",
   "tenv",
@@ -283,6 +285,10 @@ enable = [
 
     [[linters-settings.revive.rules]]
       name = "waitgroup-by-value"
+
+  [linters-settings.sloglint]
+    kv-only = true
+    args-on-sep-lines = true
 
   [linters-settings.staticcheck]
     checks = ["all"]
