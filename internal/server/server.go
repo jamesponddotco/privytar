@@ -17,9 +17,9 @@ import (
 	"git.sr.ht/~jamesponddotco/privytar/internal/config"
 	"git.sr.ht/~jamesponddotco/privytar/internal/endpoint"
 	"git.sr.ht/~jamesponddotco/privytar/internal/fetch"
-	"git.sr.ht/~jamesponddotco/privytar/internal/perror"
 	"git.sr.ht/~jamesponddotco/privytar/internal/server/handler"
 	"git.sr.ht/~jamesponddotco/xstd-go/xcrypto/xtls"
+	"git.sr.ht/~jamesponddotco/xstd-go/xnet/xhttp"
 	"git.sr.ht/~jamesponddotco/xstd-go/xnet/xhttp/xmiddleware"
 )
 
@@ -87,10 +87,12 @@ func New(cfg *config.Config, logger *slog.Logger) (*Server, error) {
 		case endpoint.Root:
 			http.Redirect(w, r, cfg.Service.Homepage, http.StatusMovedPermanently)
 		default:
-			perror.JSON(r.Context(), w, logger, perror.ErrorResponse{
+			response := xhttp.ResponseError{
 				Code:    http.StatusNotFound,
 				Message: "Page not found. Check the URL and try again.",
-			})
+			}
+
+			response.Write(r.Context(), logger, w)
 		}
 	})
 

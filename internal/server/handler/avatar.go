@@ -9,8 +9,8 @@ import (
 
 	"git.sr.ht/~jamesponddotco/privytar/internal/cache"
 	"git.sr.ht/~jamesponddotco/privytar/internal/fetch"
-	"git.sr.ht/~jamesponddotco/privytar/internal/perror"
 	"git.sr.ht/~jamesponddotco/xstd-go/xhash/xfnv"
+	"git.sr.ht/~jamesponddotco/xstd-go/xnet/xhttp"
 )
 
 const (
@@ -62,10 +62,12 @@ func (h *AvatarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			slog.String("hash", hash),
 		)
 
-		perror.JSON(r.Context(), w, h.logger, perror.ErrorResponse{
+		response := xhttp.ResponseError{
 			Message: "Invalid hash format",
 			Code:    http.StatusBadRequest,
-		})
+		}
+
+		response.Write(r.Context(), h.logger, w)
 
 		return
 	}
@@ -80,10 +82,14 @@ func (h *AvatarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			slog.String("error", err.Error()),
 		)
 
-		perror.JSON(r.Context(), w, h.logger, perror.ErrorResponse{
+		response := xhttp.ResponseError{
 			Message: "Failed to normalize query string",
-			Code:    http.StatusInternalServerError,
-		})
+			Code:    http.StatusBadRequest,
+		}
+
+		response.Write(r.Context(), h.logger, w)
+
+		return
 	}
 
 	var (
@@ -102,10 +108,12 @@ func (h *AvatarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				slog.String("error", err.Error()),
 			)
 
-			perror.JSON(r.Context(), w, h.logger, perror.ErrorResponse{
+			response := xhttp.ResponseError{
 				Message: "Failed to get image from cache",
 				Code:    http.StatusInternalServerError,
-			})
+			}
+
+			response.Write(r.Context(), h.logger, w)
 
 			return
 		}
@@ -121,10 +129,12 @@ func (h *AvatarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				slog.String("error", err.Error()),
 			)
 
-			perror.JSON(r.Context(), w, h.logger, perror.ErrorResponse{
-				Message: "Failed to fetch Gravatar image",
+			response := xhttp.ResponseError{
+				Message: "Failed to fetch image from Gravatar",
 				Code:    http.StatusBadGateway,
-			})
+			}
+
+			response.Write(r.Context(), h.logger, w)
 
 			return
 		}
@@ -138,10 +148,12 @@ func (h *AvatarHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				slog.String("error", err.Error()),
 			)
 
-			perror.JSON(r.Context(), w, h.logger, perror.ErrorResponse{
+			response := xhttp.ResponseError{
 				Message: "Failed to save image to cache",
 				Code:    http.StatusInternalServerError,
-			})
+			}
+
+			response.Write(r.Context(), h.logger, w)
 
 			return
 		}
