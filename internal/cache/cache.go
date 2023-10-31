@@ -63,7 +63,7 @@ func New(capacity uint, expiration timeutil.CacheDuration) *Cache {
 }
 
 // Get retrieves the value for the given key from the cache.
-func (c *Cache) Get(key string) ([]byte, error) {
+func (c *Cache) Get(key string) ([]byte, error) { //nolint:unparam // looks like a false positive
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
